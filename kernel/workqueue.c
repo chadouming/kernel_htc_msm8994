@@ -191,7 +191,6 @@ struct workqueue_struct {
 #endif
 	char			name[WQ_NAME_LEN]; 
 
-	
 	unsigned int		flags ____cacheline_aligned; 
 	struct pool_workqueue __percpu *cpu_pwqs; 
 	struct pool_workqueue __rcu *numa_pwq_tbl[]; 
@@ -199,27 +198,35 @@ struct workqueue_struct {
 
 static struct kmem_cache *pwq_cache;
 
-static int wq_numa_tbl_len;		
+static int wq_numa_tbl_len;
 static cpumask_var_t *wq_numa_possible_cpumask;
-					
 
 static bool wq_disable_numa;
 module_param_named(disable_numa, wq_disable_numa, bool, 0444);
 
-static bool wq_numa_enabled;		
+/* see the comment above the definition of WQ_POWER_EFFICIENT */
+#ifdef CONFIG_WQ_POWER_EFFICIENT_DEFAULT
+static bool wq_power_efficient = true;
+#else
+static bool wq_power_efficient;
+#endif
+
+module_param_named(power_efficient, wq_power_efficient, bool, 0444);
+
+static bool wq_numa_enabled;		/* unbound NUMA affinity enabled */
 
 static struct workqueue_attrs *wq_update_unbound_numa_attrs_buf;
 
-static DEFINE_MUTEX(wq_pool_mutex);	
-static DEFINE_SPINLOCK(wq_mayday_lock);	
+static DEFINE_MUTEX(wq_pool_mutex);
+static DEFINE_SPINLOCK(wq_mayday_lock);
 
-static LIST_HEAD(workqueues);		
-static bool workqueue_freezing;		
+static LIST_HEAD(workqueues);
+static bool workqueue_freezing;
 
 static DEFINE_PER_CPU_SHARED_ALIGNED(struct worker_pool [NR_STD_WORKER_POOLS],
 				     cpu_worker_pools);
 
-static DEFINE_IDR(worker_pool_idr);	
+static DEFINE_IDR(worker_pool_idr);
 
 static DEFINE_HASHTABLE(unbound_pool_hash, UNBOUND_POOL_HASH_ORDER);
 
@@ -2777,6 +2784,10 @@ struct workqueue_struct *__alloc_workqueue_key(const char *fmt,
 	va_list args;
 	struct workqueue_struct *wq;
 	struct pool_workqueue *pwq;
+
+	/* see the comment above the definition of WQ_POWER_EFFICIENT */
+	if ((flags & WQ_POWER_EFFICIENT) && wq_power_efficient)
+		flags |= WQ_UNBOUND;
 
 	/* allocate wq and format name */
 	if (flags & WQ_UNBOUND)
