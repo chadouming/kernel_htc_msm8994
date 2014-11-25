@@ -315,6 +315,11 @@ config HTC_PNPMGR
     ---help---
       Collect the sysfs files nodes for pnpmgr usage.
 
+config PM_SYNC_BEFORE_SUSPEND
+	bool "Sync file systems before suspend"
+	depends on PM
+	default y
+
 config QUICK_WAKEUP
 	bool "Quick wakeup"
 	depends on SUSPEND
