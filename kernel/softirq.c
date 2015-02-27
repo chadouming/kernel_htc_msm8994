@@ -6,8 +6,6 @@
  *	Distribute under GPLv2.
  *
  *	Rewritten. Old one was good in 2.2, but in 2.3 it was immoral. --ANK (990903)
- *
- *	Remote softirq infrastructure is by Jens Axboe.
  */
 
 #include <linux/export.h>
@@ -494,7 +492,7 @@ void tasklet_hrtimer_init(struct tasklet_hrtimer *ttimer,
 }
 EXPORT_SYMBOL_GPL(tasklet_hrtimer_init);
 
-
+/*
 DEFINE_PER_CPU(struct list_head [NR_SOFTIRQS], softirq_work_list);
 EXPORT_PER_CPU_SYMBOL(softirq_work_list);
 
@@ -504,7 +502,7 @@ static void __local_trigger(struct call_single_data *cp, int softirq)
 
 	list_add_tail(&cp->list, head);
 
-	/* Trigger the softirq only if the list was previously empty.  */
+	Trigger the softirq only if the list was previously empty. 
 	if (head->next == &cp->list)
 		raise_softirq_irqoff(softirq);
 }
@@ -589,22 +587,18 @@ static struct notifier_block __cpuinitdata remote_softirq_cpu_notifier = {
 	.notifier_call	= remote_softirq_cpu_notify,
 };
 
+*/
+
 void __init softirq_init(void)
 {
 	int cpu;
 
 	for_each_possible_cpu(cpu) {
-		int i;
-
 		per_cpu(tasklet_vec, cpu).tail =
 			&per_cpu(tasklet_vec, cpu).head;
 		per_cpu(tasklet_hi_vec, cpu).tail =
 			&per_cpu(tasklet_hi_vec, cpu).head;
-		for (i = 0; i < NR_SOFTIRQS; i++)
-			INIT_LIST_HEAD(&per_cpu(softirq_work_list[i], cpu));
 	}
-
-	register_hotcpu_notifier(&remote_softirq_cpu_notifier);
 
 	open_softirq(TASKLET_SOFTIRQ, tasklet_action);
 	open_softirq(HI_SOFTIRQ, tasklet_hi_action);
@@ -620,9 +614,13 @@ static void run_ksoftirqd(unsigned int cpu)
 	local_irq_disable();
 	if (local_softirq_pending()) {
 		__do_softirq();
-		rcu_note_context_switch(cpu);
 		local_irq_enable();
 		cond_resched();
+
+		preempt_disable();
+		rcu_note_context_switch(cpu);
+		preempt_enable();
+
 		return;
 	}
 	local_irq_enable();

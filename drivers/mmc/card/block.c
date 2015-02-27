@@ -219,6 +219,8 @@ static ssize_t power_ro_lock_show(struct device *dev,
 
 	ret = snprintf(buf, PAGE_SIZE, "%d\n", locked);
 
+	mmc_blk_put(md);
+
 	return ret;
 }
 
@@ -1335,6 +1337,18 @@ static int mmc_blk_reset(struct mmc_blk_data *md, struct mmc_host *host,
 static inline void mmc_blk_reset_success(struct mmc_blk_data *md, int type)
 {
 	md->reset_done &= ~type;
+}
+
+int mmc_access_rpmb(struct mmc_queue *mq)
+{
+	struct mmc_blk_data *md = mq->data;
+	/*
+	 * If this is a RPMB partition access, return ture
+	 */
+	if (md && md->part_type == EXT_CSD_PART_CONFIG_ACC_RPMB)
+		return true;
+
+	return false;
 }
 
 static int mmc_blk_issue_discard_rq(struct mmc_queue *mq, struct request *req)
@@ -2543,10 +2557,15 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 			}
 			break;
 		case MMC_BLK_CMD_ERR:
+			ret = mmc_blk_cmd_err(md, card, brq, req, ret);
+			if (mmc_blk_reset(md, card->host, type))
+				goto cmd_abort;
+			if (!ret)
+				goto start_new_req;
+			break;
 		case MMC_BLK_RETRY:
 		case MMC_BLK_ABORT:
 		case MMC_BLK_DATA_ERR: {
-			
 			pr_info("%s: %s status %d retry %d\n", mmc_hostname(card->host),
 				__func__, status, retry);
 			if (!did_reinit) {
@@ -2555,7 +2574,7 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 			}
 			if (retry++ < 5)
 				break;
-			
+
 			if (status == MMC_BLK_CMD_ERR) {
 				ret = mmc_blk_cmd_err(md, card, brq, req, ret);
 				if (!mmc_blk_reset(md, card->host, type)) {
@@ -2575,7 +2594,6 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 				if (err == -ENODEV ||
 						mmc_packed_cmd(mq_rq->cmd_type))
 					goto cmd_abort;
-			
 			} else {
 				if (!mmc_blk_reset(md, card->host, type))
 					break;
@@ -2584,7 +2602,6 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 		}
 		case MMC_BLK_ECC_ERR:
 			if (brq->data.blocks > 1) {
-				
 				pr_warning("%s: retrying using single block read\n",
 					   req->rq_disk->disk_name);
 				disable_multi = 1;
