@@ -1437,10 +1437,15 @@ unsigned int power_cost_at_freq(int cpu, unsigned int freq)
 	    !sysctl_sched_enable_power_aware)
 		return cpu_rq(cpu)->max_possible_capacity;
 
-	if (!freq)
-		freq = min_max_freq;
-
 	costs = per_cpu_info[cpu].ptable;
+
+	if (!freq) {
+		freq = min_max_freq;
+	} else {
+		i = per_cpu_info[cpu].len / 2;
+		if (costs[i].freq > freq)
+			i = 0;
+	}
 
 	while (costs[i].freq != 0) {
 		if (costs[i].freq >= freq ||
@@ -1451,25 +1456,27 @@ unsigned int power_cost_at_freq(int cpu, unsigned int freq)
 	BUG();
 }
 
-static unsigned int power_cost(struct task_struct *p, int cpu)
+static unsigned int power_cost(u64 task_load, int cpu)
 {
-	u64 demand;
-	unsigned int task_freq;
-	unsigned int cur_freq = cpu_rq(cpu)->cur_freq;
+	int i, end;
+	struct rq *rq = cpu_rq(cpu);
+	struct hmp_power_cost_table *ptr = &rq->pwr_cost_table;
 
-	if (!sysctl_sched_enable_power_aware)
-		return cpu_rq(cpu)->max_possible_capacity;
+	if (!sysctl_sched_enable_power_aware || !ptr->len)
+		return rq->max_possible_capacity;
 
-	/* calculate % of max freq needed */
-	demand = scale_load_to_cpu(task_load(p), cpu) * 100;
-	demand = div64_u64(demand, max_task_load());
+	/* do simple divide & conquer */
+	i = ptr->len / 2;
+	end = ptr->len;
+	if (!(ptr->map[i].demand < task_load))
+		i = 0;
 
-	task_freq = demand * cpu_rq(cpu)->max_possible_freq;
-	task_freq /= 100; /* khz needed */
-
-	task_freq = max(cur_freq, task_freq);
-
-	return power_cost_at_freq(cpu, task_freq);
+	for (; i < end; i++) {
+		if (task_load <= ptr->map[i].demand &&
+		    ptr->map[i].freq >= rq->cur_freq)
+			return *(ptr->map[i].power_cost);
+	}
+	return *(ptr->map[i - 1].power_cost);
 }
 
 static int best_small_task_cpu(struct task_struct *p, int sync)
@@ -1495,10 +1502,10 @@ static int best_small_task_cpu(struct task_struct *p, int sync)
 
 		trace_sched_cpu_load(cpu_rq(i), idle_cpu(i),
 				     mostly_idle_cpu_sync(i, sync),
-				     sched_irqload(i), power_cost(p, i),
+				     sched_irqload(i), power_cost(scale_load_to_cpu(task_load(p),i), i),
 				     cpu_temp(i));
 
-		cpu_cost = power_cost(p, i);
+		cpu_cost = power_cost(scale_load_to_cpu(task_load(p),i), i);
 		if (cpu_cost < min_cost ||
 		    (cpu_cost == min_cost && i == prev_cpu)) {
 			min_cost = cpu_cost;
@@ -1599,7 +1606,8 @@ static int skip_cpu(struct task_struct *p, int cpu, int reason)
 
 	case MOVE_TO_POWER_EFFICIENT_CPU:
 		skip = rq->capacity < task_rq->capacity  ||
-			power_cost(p, cpu) >  power_cost(p,  task_cpu(p));
+			power_cost(scale_load_to_cpu(task_load(p), 0), cpu) >
+					power_cost(scale_load_to_cpu(task_load(p), 0),  task_cpu(p));
 		break;
 	case MOVE_TO_BUDGET_CAPABLE_CPU:
 		skip = 0;
@@ -1623,7 +1631,6 @@ static int select_packing_target(struct task_struct *p, int best_cpu)
 	if (rq->cur_freq >= rq->mostly_idle_freq)
 		return best_cpu;
 
-	
 	if (rq->max_freq <= rq->mostly_idle_freq)
 		return best_cpu;
 
@@ -1633,7 +1640,7 @@ static int select_packing_target(struct task_struct *p, int best_cpu)
 	/* Take a first pass to find the lowest power cost CPU. This
 	   will avoid a potential O(n^2) search */
 	for_each_cpu(i, &search_cpus) {
-		int cost = power_cost(p, i);
+		int cost = power_cost(scale_load_to_cpu(task_load(p), i), i);
 
 		if (cost < min_cost && !sched_cpu_high_irqload(i)) {
 			target = i;
@@ -1681,16 +1688,15 @@ static int select_best_cpu(struct task_struct *p, int target, int reason,
 
 	if (small_task && !boost) {
 		best_cpu = best_small_task_cpu(p, sync);
-		prefer_idle = 0;	
+		prefer_idle = 0;
 		goto done;
 	}
 
-	
 	for_each_cpu_and(i, tsk_cpus_allowed(p), cpu_online_mask) {
 
 		trace_sched_cpu_load(cpu_rq(i), idle_cpu(i),
 				     mostly_idle_cpu_sync(i, sync),
-				     sched_irqload(i), power_cost(p, i),
+				     sched_irqload(i), power_cost(scale_load_to_cpu(task_load(p), i), i),
 				     cpu_temp(i));
 
 		if (cpu_rq(i)->budget == 0)
@@ -1722,7 +1728,6 @@ static int select_best_cpu(struct task_struct *p, int target, int reason,
 			continue;
 		}
 
-		
 		if (prefer_idle == -1)
 			prefer_idle = cpu_rq(i)->prefer_idle;
 
@@ -1731,7 +1736,7 @@ static int select_best_cpu(struct task_struct *p, int target, int reason,
 
 
 		load = cpu_load_sync(i, sync);
-		cpu_cost = power_cost(p, i);
+		cpu_cost = power_cost(scale_load_to_cpu(task_load(p), i), i);
 		cstate = cpu_rq(i)->cstate;
 
 		if (power_delta_exceeded(cpu_cost, min_cost)) {
@@ -2235,14 +2240,13 @@ static inline int find_new_hmp_ilb(int call_cpu, int type)
 
 static int lower_power_cpu_available(struct task_struct *p, int cpu)
 {
-	int i;
+	int i = 0;
 	int lowest_power_cpu = task_cpu(p);
-	int lowest_power = power_cost(p, task_cpu(p));
+	int lowest_power = power_cost(scale_load_to_cpu(task_load(p), lowest_power_cpu), task_cpu(p));
 
-	
 	for_each_cpu_and(i, tsk_cpus_allowed(p), cpu_online_mask) {
 		if (idle_cpu(i) && task_will_fit(p, i)) {
-			int idle_power_cost = power_cost(p, i);
+			int idle_power_cost = power_cost(scale_load_to_cpu(task_load(p), i), i);
 			if (idle_power_cost < lowest_power) {
 				lowest_power_cpu = i;
 				lowest_power = idle_power_cost;
@@ -2398,7 +2402,7 @@ static inline int find_new_hmp_ilb(int call_cpu, int type)
 	return 0;
 }
 
-static inline int power_cost(struct task_struct *p, int cpu)
+static inline int power_cost(u64 task_load, int cpu)
 {
 	return SCHED_POWER_SCALE;
 }
