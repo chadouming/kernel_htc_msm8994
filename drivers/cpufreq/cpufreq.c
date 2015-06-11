@@ -1549,6 +1549,7 @@ int __cpufreq_driver_target(struct cpufreq_policy *policy,
 	pr_debug("target for CPU %u: %u kHz, relation %u, requested %u kHz\n",
 			policy->cpu, target_freq, relation, old_target_freq);
 
+	/* Exit early if our freq is actually the target freq */
 	if (target_freq == policy->cur)
 		return 0;
 
