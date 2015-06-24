@@ -4241,30 +4241,38 @@ void easy_access_irq_handler(struct cwmcu_data *mcu_data, u8 easy_access_type)
 	data_buff[1] = cpu_to_le16p((u16 *)&u16_data_p[2]);
 	D("%s: data_event = 0x%x, data_buff(0, 1) = (0x%x, 0x%x)\n",
 	  __func__, data_event, data_buff[0], data_buff[1]);
-	if (vib_trigger) {
-		if (data[0] == HTC_GESTURE_MOTION_TYPE_SWIPE_UP ||
-			  data[0] == HTC_GESTURE_MOTION_TYPE_SWIPE_DOWN ||
-			  data[0] == HTC_GESTURE_MOTION_TYPE_SWIPE_LEFT ||
-			  data[0] == HTC_GESTURE_MOTION_TYPE_SWIPE_RIGHT ||
-			  data[0] == HTC_GESTURE_MOTION_TYPE_LAUNCH_CAMERA ||
-			  data[0] == HTC_GESTURE_MOTION_TYPE_DOUBLE_TAP) {
-			I("%s: gesture detected = %d, vibrates for %d ms\n",
-			  __func__, data[0], mcu_data->vibrate_ms);
-			vib_trigger_event(vib_trigger, mcu_data->vibrate_ms);
-			mcu_data->sensors_time[sensor_id] = 0;
-			cw_send_event(mcu_data, sensor_id, data_buff, 0);
-			mcu_data->power_key_pressed = 0;
-		} else {
-			E("%s: no gesture motion type = %d\n", __func__, data[0]);
-		}
-	} else {
-		E("%s: no vib_trigger\n", __func__);
-		mcu_data->sensors_time[sensor_id] = 0;
-		cw_send_event(mcu_data, sensor_id, data_buff, 0);
-		mcu_data->power_key_pressed = 0;
+		if (data[0] == 14) {
+				vib_trigger_event(vib_trigger, VIB_TIME);
+				D("Gesture motion HIDI detected, vibrate for %d ms!\n", VIB_TIME);
+			} else if(data[0] == 6 || data[0] == 15 || data[0] == 18 || data[0] == 19 || data[0] == 24 || data[0] == 25 || data[0] == 26 || data[0] == 27) {
+				vib_trigger_event(vib_trigger, VIB_TIME);
+				sensor->sensors_time[Gesture_Motion_HIDI] = 0;
+				input_report_rel(sensor->input, HTC_Gesture_Motion_HIDI, data_event);
+				input_sync(sensor->input);
+				power_key_pressed = 0;
+				D("[CWMCU][vib_trigger] Gesture_Motion_HIDI: df0: %d, d0: %d, d1: %d\n", data_buff[0], data[0], data[1]);
+				D("[CWMCU][vib_trigger] Gesture_Motion_HIDI: data_buff: %d, data_event: %d\n", data_buff[1], data_event);
+				D("[CWMCU][vib_trigger] Gesture_Motion_HIDI input sync\n");
+ 			} else {
+				sensor->sensors_time[Gesture_Motion_HIDI] = 0;
+                                input_report_rel(sensor->input, HTC_Gesture_Motion_HIDI, data_event);
+                                input_sync(sensor->input);
+                                power_key_pressed = 0;
+                                D("[CWMCU][disable vib_trigger] Gesture_Motion_HIDI: df0: %d, d0: %d, d1: %d\n", data_buff[0], data[0], data[1]);
+                                D("[CWMCU][disable vib_trigger] Gesture_Motion_HIDI: data_buff: %d, data_event: %d\n", data_buff[1], data_event);
+                                D("[CWMCU][disable vib_trigger] Gesture_Motion_HIDI input sync\n");
+ 			}
+
+			} else {
+			sensor->sensors_time[Gesture_Motion_HIDI] = 0;
+			input_report_rel(sensor->input, HTC_Gesture_Motion_HIDI, data_event);
+			input_sync(sensor->input);
+			power_key_pressed = 0;
+			D("[CWMCU] Gesture_Motion_HIDI: df0: %d, d0: %d, d1: %d\n", data_buff[0], data[0], data[1]);
+			D("[CWMCU] Gesture_Motion_HIDI: data_buff: %d, data_event: %d\n", data_buff[1], data_event);
+			D("[CWMCU] Gesture_Motion_HIDI input sync\n");
 	}
 	ret = CWMCU_i2c_write_power(mcu_data, CWSTM32_INT_ST4, &clear_intr, 1);
-}
 
 static irqreturn_t cwmcu_irq_handler(int irq, void *handle)
 {
