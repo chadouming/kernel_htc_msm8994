@@ -51,6 +51,9 @@ typedef enum {
 	CW_STEP_COUNTER                = 22,
 	HTC_GESTURE_MOTION             = 24,
 	HTC_ANY_MOTION                 = 28,
+    HTC_MATRIX_GESTURE             = 29,
+	HTC_GESTURE_MOTION_HIDI        = 30,
+	HTC_MATRIX_GESTURE_HIDI        = 31,
 	CW_SENSORS_ID_FW ,
 	CW_ACCELERATION_W                = 32,
 	CW_MAGNETIC_W                    = 33,
@@ -287,6 +290,9 @@ struct cwmcu_ramdump_param {
 
 #define num_sensors			CW_SENSORS_ID_TOTAL
 
+#define	Gesture_Motion_HIDI		HTC_GESTURE_MOTION_HIDI
+#define	Matrix_Gesture_HIDI		HTC_MATRIX_GESTURE_HIDI
+
 #define CWSTM32_BATCH_MODE_COMMAND	0x40  
 
 #define CWSTM32_BATCH_MODE_DATA_QUEUE	0x45  
@@ -297,6 +303,7 @@ struct cwmcu_ramdump_param {
 #define CWSTM32_WAKE_UP_BATCH_MODE_DATA_QUEUE	0x55  
 #define CWSTM32_WAKE_UP_BATCH_MODE_TIMEOUT      0x56  
 #define CWSTM32_WAKE_UP_BATCH_MODE_DATA_COUNTER	0x57  
+#define CWSTM32_READ_Gesture_Motion_HIDI        0x3A
 
 #define SYNC_TIMESTAMP_BIT		(1 << 1)
 #define TIMESTAMP_SYNC_CODE		(98)
@@ -354,7 +361,9 @@ typedef struct {
 #define CW_MCU_INT_BIT_ERROR_WARN_MSG           (1 << 5)
 #define CW_MCU_INT_BIT_ERROR_MCU_EXCEPTION      (1 << 6)
 #define CW_MCU_INT_BIT_ERROR_WATCHDOG_RESET     (1 << 7)
-
+#define CW_MCU_INT_BIT_MATRIX_GESTURE           (1 << 5)
+#define CW_MCU_INT_BIT_HTC_GESTURE_MOTION_HIDI  (1 << 6)
+#define CW_MCU_INT_BIT_HTC_MATRIX_GESTURE_HIDI  (1 << 7)
 #define CW_MCU_INT_BIT_BATCH_TIMEOUT      (1 << 2)
 #define CW_MCU_INT_BIT_BATCH_BUFFER_FULL  (1 << 4)
 #define CW_MCU_INT_BIT_BATCH_TRIGGER_READ (CW_MCU_INT_BIT_BATCH_TIMEOUT |\
@@ -395,6 +404,12 @@ typedef struct {
 #define CWSTM32_READ_Gesture_Motion				0x38
 #define CWSTM32_READ_Any_Motion					0x3F
 
+#define CWSTM32_READ_SENSOR_BUFFERED_TRANSPORT			0x3C
+#define CWSTM32_READ_SENSOR_REALTIME_TRANSPORT			0x3D
+#define CWSTM32_READ_SENSOR_TRANSPORT_BUFFER_FULL		0x3E
+#define CWSTM32_READ_Matrix_Gesture                 	        0x39
+#define CWSTM32_READ_Gesture_Motion_HIDI               	        0x3A
+#define CWSTM32_READ_Matrix_Gesture_HIDI    
 
 #define HTC_GESTURE_MOTION_TYPE_SWIPE_UP             2
 #define HTC_GESTURE_MOTION_TYPE_SWIPE_DOWN           3

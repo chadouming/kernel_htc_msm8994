@@ -108,6 +108,15 @@
 #define SYNC_ACK_MAGIC  0x66
 #define EXHAUSTED_MAGIC 0x77
 
+#define HTC_Gesture_Motion 0x07
+#define REL_Significant_Motion REL_WHEEL
+#define HTC_Any_Motion 0x09
+#define HTC_Matrix_Gesture 0x0a
+#define HTC_Gesture_Motion_HIDI 0x0b
+#define HTC_Matrix_Gesture_HIDI 0x0c
+
+#define USE_WAKE_MCU 1
+
 #define CRASH_REASON_NUM 4
 
 #define CALIBRATION_DATA_PATH "/calibration_data"
