@@ -1486,19 +1486,20 @@ static void input_dev_toggle(struct input_dev *dev, bool activate)
 	}
 }
 
+/**
+ * input_reset_device() - reset/restore the state of input device
+ * @dev: input device whose state needs to be reset
+ *
+ * This function tries to reset the state of an opened input device and
+ * bring internal state and state if the hardware in sync with each other.
+ * We restore LED state, repeat rate, etc.
+ */
 void input_reset_device(struct input_dev *dev)
 {
 	mutex_lock(&dev->mutex);
 
 	if (dev->users) {
 		input_dev_toggle(dev, true);
-#if 0
-		if (!test_bit(INPUT_PROP_NO_DUMMY_RELEASE, dev->propbit)) {
-			spin_lock_irq(&dev->event_lock);
-			input_dev_release_keys(dev);
-			spin_unlock_irq(&dev->event_lock);
-		}
-#endif
 	}
 
 	mutex_unlock(&dev->mutex);
