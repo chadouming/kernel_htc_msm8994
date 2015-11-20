@@ -3351,14 +3351,14 @@ static void *def_codec_mbhc_cal(void)
 	btn_low = wcd9xxx_mbhc_cal_btn_det_mp(btn_cfg, MBHC_BTN_DET_V_BTN_LOW);
 	btn_high = wcd9xxx_mbhc_cal_btn_det_mp(btn_cfg,
 					       MBHC_BTN_DET_V_BTN_HIGH);
-	btn_low[0] = -50;
-	btn_high[0] = 20;
-	btn_low[1] = 21;
-	btn_high[1] = 61;
-	btn_low[2] = 62;
-	btn_high[2] = 104;
-	btn_low[3] = 105;
-	btn_high[3] = 148;
+	btn_low[0] = -200;
+	btn_high[0] = 97;
+	btn_low[1] = 98;
+	btn_high[1] = 222;
+	btn_low[2] = 223;
+	btn_high[2] = 343;
+	btn_low[3] = 344;
+	btn_high[3] = 722;
 	btn_low[4] = 149;
 	btn_high[4] = 189;
 	btn_low[5] = 190;
