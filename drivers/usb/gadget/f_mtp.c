@@ -358,13 +358,9 @@ struct mtp_device_status {
 };
 
 struct mtp_data_header {
-	
 	__le32	length;
-	
 	__le16	type;
-	
 	__le16	command;
-	
 	__le32	transaction_id;
 };
 
@@ -374,10 +370,9 @@ static struct mtp_dev *_mtp_dev;
 
 static void mtp_setup_perflock(bool mtp_perf_lock_on)
 {
-	struct mtp_dev *dev = _mtp_dev;
+	/*struct mtp_dev *dev = _mtp_dev;
 	dev->mtp_perf_lock_on = mtp_perf_lock_on;
 
-	
 	del_timer(&dev->perf_timer);
 	if (mtp_perf_lock_on) {
 		if (!is_perf_lock_active(&dev->perf_lock)) {
@@ -389,7 +384,7 @@ static void mtp_setup_perflock(bool mtp_perf_lock_on)
 			printk(KERN_INFO "[USB][MTP] %s, perf off\n", __func__);
 			perf_unlock(&dev->perf_lock);
 		}
-	}
+	}*/
 }
 
 static __maybe_unused void release_perflock_work_func(struct work_struct *data)
