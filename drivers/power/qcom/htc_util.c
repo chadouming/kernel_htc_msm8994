@@ -759,35 +759,30 @@ static void htc_pm_monitor_work_func(struct work_struct *work)
 	pr_info("[K][PM] hTC PM Statistic start (%02d-%02d %02d:%02d:%02d)\n",
 		tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
-	
 	htc_show_sensor_temp();
 
-	
 	htc_show_interrupts();
 
-	
 	htc_idle_stat_show();
 	htc_idle_stat_clear();
 
-	
+#ifdef CONFIG_DEBUG_KERNEL
 	htc_timer_stats_onoff('0');
-	htc_timer_stats_show(300); 
+	htc_timer_stats_show(300);
 	htc_timer_stats_onoff('1');
+#endif
 
-	
 	htc_print_active_wakeup_sources();
 
 	queue_delayed_work(htc_pm_monitor_wq, &ktop->dwork, msecs_to_jiffies(msm_htc_util_delay_time));
 	htc_kernel_top_cal(ktop, KERNEL_TOP);
 	htc_kernel_top_show(ktop, KERNEL_TOP);
 
-	
 	htc_debug_flag_show();
 
 	if (s_on == 0) {
 		all_vm_events(vm_event);
 		vm_event[PGPGIN] /= 2;
-		
 		vm_event[PGPGOUT] /= 2;
 
 		for(i = 0; i < NR_VM_EVENT_ITEMS; i++) {
