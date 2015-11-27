@@ -43,8 +43,6 @@ void dbs_check_cpu(struct dbs_data *dbs_data, int cpu)
 	unsigned int j;
 
 	if (dbs_data->cdata->governor == GOV_ONDEMAND) {
-		ignore_nice = od_tuners->ignore_nice_load;
-
 		struct od_cpu_dbs_info_s *od_dbs_info =
 				dbs_data->cdata->get_cpu_dbs_info_s(cpu);
 
@@ -56,10 +54,11 @@ void dbs_check_cpu(struct dbs_data *dbs_data, int cpu)
 		 */
 		sampling_rate = od_tuners->sampling_rate;
 		sampling_rate *= od_dbs_info->rate_mult;
+
 		ignore_nice = od_tuners->ignore_nice_load;
 	} else if (dbs_data->cdata->governor == GOV_ELEMENTALX) {
-                sampling_rate = ex_tuners->sampling_rate;
-                ignore_nice = ex_tuners->ignore_nice_load;
+		sampling_rate = ex_tuners->sampling_rate;
+		ignore_nice = ex_tuners->ignore_nice_load;
 	} else {
 		sampling_rate = cs_tuners->sampling_rate;
 		ignore_nice = cs_tuners->ignore_nice_load;
@@ -77,6 +76,12 @@ void dbs_check_cpu(struct dbs_data *dbs_data, int cpu)
 
 		j_cdbs = dbs_data->cdata->get_cpu_cdbs(j);
 
+		/*
+		 * For the purpose of ondemand, waiting for disk IO is
+		 * an indication that you're performance critical, and
+		 * not that the system is actually idle. So do not add
+		 * the iowait time to the cpu idle time.
+		 */
 		if (dbs_data->cdata->governor == GOV_ONDEMAND)
 			io_busy = od_tuners->io_is_busy;
 		cur_idle_time = get_cpu_idle_time(j, &cur_wall_time, io_busy);
@@ -95,6 +100,10 @@ void dbs_check_cpu(struct dbs_data *dbs_data, int cpu)
 
 			cur_nice = kcpustat_cpu(j).cpustat[CPUTIME_NICE] -
 					 cdbs->prev_cpu_nice;
+			/*
+			 * Assumption: nice time between sampling periods will
+			 * be less than 2^32 jiffies for 32 bit sys
+			 */
 			cur_nice_jiffies = (unsigned long)
 					cputime64_to_jiffies64(cur_nice);
 

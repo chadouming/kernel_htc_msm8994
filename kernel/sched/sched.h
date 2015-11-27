@@ -22,15 +22,9 @@ extern __read_mostly int scheduler_running;
 
 #define NS_TO_JIFFIES(TIME)	((unsigned long)(TIME) / (NSEC_PER_SEC / HZ))
 
-#if 0 
-# define SCHED_LOAD_RESOLUTION	10
-# define scale_load(w)		((w) << SCHED_LOAD_RESOLUTION)
-# define scale_load_down(w)	((w) >> SCHED_LOAD_RESOLUTION)
-#else
 # define SCHED_LOAD_RESOLUTION	0
 # define scale_load(w)		(w)
 # define scale_load_down(w)	(w)
-#endif
 
 #define SCHED_LOAD_SHIFT	(10 + SCHED_LOAD_RESOLUTION)
 #define SCHED_LOAD_SCALE	(1L << SCHED_LOAD_SHIFT)
@@ -316,10 +310,9 @@ struct root_domain {
 
 extern struct root_domain def_root_domain;
 
-#endif 
+#endif
 
 struct rq {
-	
 	raw_spinlock_t lock;
 
 	unsigned int nr_running;
@@ -344,12 +337,11 @@ struct rq {
 	struct rt_rq rt;
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
-	
 	struct list_head leaf_cfs_rq_list;
 #ifdef CONFIG_SMP
 	unsigned long h_load_throttle;
-#endif 
-#endif 
+#endif
+#endif
 
 #ifdef CONFIG_RT_GROUP_SCHED
 	struct list_head leaf_rt_rq_list;
@@ -415,6 +407,7 @@ struct rq {
 
 #ifdef CONFIG_SCHED_FREQ_INPUT
 	unsigned int old_busy_time;
+	int notifier_sent;
 #endif
 #endif
 
