@@ -32,7 +32,7 @@
 
 static DEFINE_MUTEX(fsync_mutex);
 
-bool power_suspend_active __read_mostly = true;
+bool power_suspend_active __read_mostly = false;
 bool dyn_fsync_active __read_mostly = true;
 
 #ifdef CONFIG_STATE_NOTIFIER
