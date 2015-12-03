@@ -35,7 +35,7 @@
 
 #define DEFAULT_MIN_CPUS_ONLINE        1
 #define DEFAULT_MAX_CPUS_ONLINE        5
-#define DEFAULT_MIN_UP_TIME            2000
+#define DEFAULT_MIN_UP_TIME            1500
 
 #define DEFAULT_NR_FSHIFT              3
 #define CAPACITY_RESERVE               50
@@ -48,7 +48,7 @@
 
 #define CPU_NR_THRESHOLD	       ((THREAD_CAPACITY << 1) - (THREAD_CAPACITY >> 1))
 
-#define MULT_FACTOR                    12
+#define MULT_FACTOR                    10
 #define DIV_FACTOR                     100000
 
 static struct delayed_work hima_hotplug_work;
@@ -67,29 +67,30 @@ static atomic_t hima_hotplug_active = ATOMIC_INIT(1);
 static unsigned int min_cpus_online = DEFAULT_MIN_CPUS_ONLINE;
 static unsigned int max_cpus_online = DEFAULT_MAX_CPUS_ONLINE;
 static unsigned int min_cpu_up_time = DEFAULT_MIN_UP_TIME;
-static unsigned int max_cpus_suspend = 4;
 
 static unsigned int current_profile_no = 0;
 static unsigned int cpu_nr_run_threshold = CPU_NR_THRESHOLD;
 static bool screen_on = 1;
 
 /* HotPlug Driver Tuning */
-static atomic_t always_on_cpu = ATOMIC_INIT(0);
 static unsigned int def_sampling_ms = DEF_SAMPLING_MS;
 static unsigned int nr_fshift = DEFAULT_NR_FSHIFT;
 
 static unsigned int nr_run_thresholds_balanced[] = {
-	/* Screen off (max 4 cores) */
-	(THREAD_CAPACITY * 700 * MULT_FACTOR * 2) / DIV_FACTOR,
-	(THREAD_CAPACITY * 950 * MULT_FACTOR * 2) / DIV_FACTOR,
-	(THREAD_CAPACITY * 1250 * MULT_FACTOR * 2) / DIV_FACTOR,
-	UINT_MAX,
-	/* Screen on (max 5 cores) */
-	(THREAD_CAPACITY * 175 * MULT_FACTOR * 2) / DIV_FACTOR,
-	(THREAD_CAPACITY * 1100 * MULT_FACTOR * 2) / DIV_FACTOR,
+	(THREAD_CAPACITY * 1 * MULT_FACTOR * 2) / DIV_FACTOR,
+	(THREAD_CAPACITY * 400 * MULT_FACTOR * 2) / DIV_FACTOR,
+	(THREAD_CAPACITY * 800 * MULT_FACTOR * 2) / DIV_FACTOR,
+	(THREAD_CAPACITY * 1150 * MULT_FACTOR * 2) / DIV_FACTOR,
 	(THREAD_CAPACITY * 1400 * MULT_FACTOR * 2) / DIV_FACTOR,
-	(THREAD_CAPACITY * 1700 * MULT_FACTOR * 2) / DIV_FACTOR,
 	UINT_MAX
+};
+
+static unsigned int nr_run_thresholds_eco[] = {
+        (THREAD_CAPACITY * 50 * MULT_FACTOR * 2) / DIV_FACTOR,
+        (THREAD_CAPACITY * 275 * MULT_FACTOR * 2) / DIV_FACTOR,
+        (THREAD_CAPACITY * 550 * MULT_FACTOR * 2) / DIV_FACTOR,
+	(THREAD_CAPACITY * 800 * MULT_FACTOR * 2) / DIV_FACTOR,
+        UINT_MAX
 };
 
 static unsigned int nr_run_thresholds_disable[] = {
@@ -98,6 +99,7 @@ static unsigned int nr_run_thresholds_disable[] = {
 
 static unsigned int *nr_run_profiles[] = {
 	nr_run_thresholds_balanced,
+	nr_run_thresholds_eco,
 	nr_run_thresholds_disable
 };
 
@@ -110,15 +112,14 @@ static unsigned int calculate_thread_stats(void)
 
         nr_fshift = 4;
 
-	threshold_size = ARRAY_SIZE(nr_run_thresholds_balanced);
+	if(current_profile_no == 0)
+		threshold_size = ARRAY_SIZE(nr_run_thresholds_balanced);
+	else if(current_profile_no == 1)
+		threshold_size = ARRAY_SIZE(nr_run_thresholds_eco);
 
 	for (nr_run = 1; nr_run < threshold_size; nr_run++) {
 		unsigned int nr_threshold;
-
-		if(screen_on)
-			nr_threshold = current_profile[nr_run + (max_cpus_suspend - 1)];
-		else
-			nr_threshold = current_profile[nr_run - 1];
+		nr_threshold = current_profile[nr_run];
 
 		if (avg_nr_run <= (nr_threshold << (FSHIFT - nr_fshift)))
 			break;
@@ -169,7 +170,8 @@ static void __ref cpu_up_down_work(struct work_struct *work)
 		for_each_online_cpu(cpu) {
 			l_ip_info = &per_cpu(ip_info, cpu);
 
-			if (cpu == 0 || ((ktime_to_ms(ktime_get()) - l_ip_info->cpu_up_time) < min_cpu_up_time))
+			if (cpu == 0 || (cpu == 4 && screen_on && current_profile_no == 0)
+				|| ((ktime_to_ms(ktime_get()) - l_ip_info->cpu_up_time) < min_cpu_up_time))
 				continue;
 			l_nr_threshold = cpu_nr_run_threshold << 1 / (num_online_cpus());
 				if (l_ip_info->cpu_nr_running < l_nr_threshold)
@@ -180,7 +182,7 @@ static void __ref cpu_up_down_work(struct work_struct *work)
 	} else {
 		update_per_cpu_stat();
 		for_each_cpu_not(cpu, cpu_online_mask) {
-			if(cpu < atomic_read(&always_on_cpu) || cpu == 0)
+			if(((cpu < 4) && current_profile_no == 0 && screen_on) || cpu == 0)
 				continue;
 			cpu_up(cpu);
 			l_ip_info = &per_cpu(ip_info, cpu);
@@ -202,7 +204,7 @@ static void hima_hotplug_work_fn(struct work_struct *work)
 
 static void __ref hima_hotplug_suspend(void)
 {
-        atomic_set(&always_on_cpu, 0);
+	max_cpus_online = 3;
 	screen_on = 0;
 }
 
@@ -210,7 +212,7 @@ static void __ref hima_hotplug_resume(void)
 {
 	static int cpu = 0;
 
-	atomic_set(&always_on_cpu, 4);
+	max_cpus_online = 5;
 	screen_on = 1;
 
 	/* Bring all cores on for fast resume */
@@ -243,7 +245,6 @@ static int state_notifier_callback(struct notifier_block *this,
 static int __ref hima_hotplug_start(void)
 {
 	int cpu, ret = 0;
-	atomic_set(&always_on_cpu, 4);
 
 	hima_hotplug_wq = alloc_workqueue("hima_hotplug", WQ_HIGHPRI | WQ_FREEZABLE, 0);
 	if (!hima_hotplug_wq) {
