@@ -2449,8 +2449,9 @@ static int __init diagchar_init(void)
 	driver = kzalloc(sizeof(struct diagchar_dev) + 5, GFP_KERNEL);
 	if (!driver)
 		return -ENOMEM;
+#if 0
 	kmemleak_not_leak(driver);
-
+#endif
 	driver->used = 0;
 	timer_in_progress = 0;
 	driver->delayed_rsp_id = 0;

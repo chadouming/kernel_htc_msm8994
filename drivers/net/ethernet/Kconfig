@@ -5,7 +5,7 @@
 menuconfig ETHERNET
 	bool "Ethernet driver support"
 	depends on NET
-	default y
+	default n
 	---help---
 	  This section contains all the Ethernet device drivers.
 
