@@ -72,3 +72,4 @@ obj-$(CONFIG_FPR_SYN)	+= fpr_Synaptics/
 obj-$(CONFIG_FPR_CT)	+= fpr_CrucialTec/
 obj-y				+= qcom/
 obj-y				+= headset/
+obj-$(CONFIG_SOUND_CONTROL) += sound_control.o
