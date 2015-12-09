@@ -1247,8 +1247,8 @@ void adreno_debugfs_init(struct adreno_device *adreno_dev);
 void adreno_context_debugfs_init(struct adreno_device *,
 				struct adreno_context *);
 #else
-static inline void adreno_debugfs_init(struct adreno_device *adreno_dev) { }
-static inline void adreno_context_debugfs_init(struct adreno_device *device,
+inline void adreno_debugfs_init(struct adreno_device *adreno_dev) { }
+inline void adreno_context_debugfs_init(struct adreno_device *device,
 						struct adreno_context *context)
 						{ }
 #endif

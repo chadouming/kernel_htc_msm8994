@@ -111,7 +111,7 @@ int pmi8994_limit_charge_enable(int chg_limit_reason,
                                 int chg_limit_timer_sub_mask,
                                 int limit_charge_timer_ma);
 #else
-int pmi8994_limit_charge_enable(bool enable, int reason, int restrict);
+int pmi8994_limit_charge_enable(bool enable, int reason, int restricted);
 #endif
 int pmi8994_is_batt_full(int *result);
 int pmi8994_is_batt_full_eoc_stop(int *result);
@@ -353,7 +353,7 @@ static inline int pmi8994_limit_charge_enable(int chg_limit_reason,
 	return -ENXIO;
 }
 #else
-static inline int pmi8994_limit_charge_enable(bool enable, int reason, int restrict)
+static inline int pmi8994_limit_charge_enable(bool enable, int reason, int restricted)
 {
 	return -ENXIO;
 }

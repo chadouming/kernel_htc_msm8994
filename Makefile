@@ -242,8 +242,8 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 
 HOSTCC       = $(CCACHE) gcc
 HOSTCXX      = $(CCACHE) g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
-HOSTCXXFLAGS = -Ofast
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -finline-functions -ffast-math
+HOSTCXXFLAGS = -O2 -finline-functions -ffast-math
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -363,7 +363,9 @@ GEN_OPT_FLAGS := $(call cc-option,$(ARM_ARCH_OPT),-march=armv8-a) \
  -fomit-frame-pointer \
  -fmodulo-sched \
  -fmodulo-sched-allow-regmoves \
- -fivopts
+ -fivopts \
+ -finline-functions \
+ -ffast-math
 
 # Use USERINCLUDE when you must reference the UAPI directories only.
 USERINCLUDE    := \

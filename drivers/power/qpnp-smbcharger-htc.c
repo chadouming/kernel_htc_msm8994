@@ -5798,7 +5798,6 @@ int pmi8994_limit_charge_enable(int chg_limit_reason, int chg_limit_timer_sub_ma
 		return -EINVAL;
 	}
 
-	
 	if (limit_charge_timer_ma != 0 && !!(chg_limit_reason & chg_limit_timer_sub_mask))
 		chg_limit_current = limit_charge_timer_ma;
 	else {
@@ -5813,28 +5812,24 @@ int pmi8994_limit_charge_enable(int chg_limit_reason, int chg_limit_timer_sub_ma
 	return 0;
 }
 #else
-int pmi8994_limit_charge_enable(bool enable, int reason, int restrict)
+int pmi8994_limit_charge_enable(bool enable, int reason, int restricted)
 {
-	pr_info("limit_charge=%d, reason=0x%x, restrict=%d\n", enable, reason, restrict);
+	pr_info("limit_charge=%d, reason=0x%x, restricted=%d\n", enable, reason, restricted);
 	if (!the_chip) {
 		pr_err("called before init\n");
 		return -EINVAL;
 	}
 
-	
 	if (enable && (reason & HTC_BATT_CHG_LIMIT_BIT_TALK))
 		chg_limit_current = PMI8994_CHG_I_MIN_MA;
-	
 	else if (enable && (reason & HTC_BATT_CHG_LIMIT_BIT_NET_TALK))
 		chg_limit_current = PMI8994_CHG_I_MIN_MA;
-	
-	else if (enable && (reason & HTC_BATT_CHG_LIMIT_BIT_THRML) && (restrict == RESTRICT_NONE))
+	else if (enable && (reason & HTC_BATT_CHG_LIMIT_BIT_THRML) && (restricted == RESTRICT_NONE))
 		chg_limit_current = 0;
-	else if (enable && (reason & HTC_BATT_CHG_LIMIT_BIT_THRML) && (restrict == RESTRICT_SOFT))
+	else if (enable && (reason & HTC_BATT_CHG_LIMIT_BIT_THRML) && (restricted == RESTRICT_SOFT))
 		chg_limit_current = PMI8994_CHG_I_MIN_MA_L1;
-	else if (enable && (reason & HTC_BATT_CHG_LIMIT_BIT_THRML) && (restrict == RESTRICT_HEAVY))
+	else if (enable && (reason & HTC_BATT_CHG_LIMIT_BIT_THRML) && (restricted == RESTRICT_HEAVY))
 		chg_limit_current = PMI8994_CHG_I_MIN_MA_L2;
-	
 	else
 		chg_limit_current = 0;
 

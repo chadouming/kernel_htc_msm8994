@@ -933,20 +933,17 @@ static void set_limit_input_current_with_reason(bool enable, int reason)
 		else
 			iusb_limit_reason &= ~reason;
 
-		
-		
 			if (htc_batt_info.icharger &&
 					htc_batt_info.icharger->set_limit_input_current) {
 				htc_batt_info.icharger->set_limit_input_current(
 						!!iusb_limit_reason, iusb_limit_reason);
 			}
-		
 	}
 	mutex_unlock(&iusb_limit_lock);
 }
 
 struct mutex chg_limit_lock;
-static void set_limit_charge_with_reason(bool enable, int reason, int restrict)
+static void set_limit_charge_with_reason(bool enable, int reason, int restricted)
 {
 	int prev_chg_limit_reason;
 	int prev_chg_restrict = RESTRICT_NONE;
@@ -956,12 +953,12 @@ static void set_limit_charge_with_reason(bool enable, int reason, int restrict)
 	mutex_lock(&chg_limit_lock);
 	prev_chg_limit_reason = chg_limit_reason;
 	prev_chg_restrict = chg_restrict;
-	chg_restrict = restrict;
+	chg_restrict = restricted;
 
 	BATT_LOG("chg_limit_reason:0x%x->0x%d, chg_restrict:%d-->%d, "
-			"enable:%d, reason:0x%x, restrict:%d",
+			"enable:%d, reason:0x%x, restricted:%d",
 			prev_chg_limit_reason, chg_limit_reason, prev_chg_restrict, chg_restrict,
-			enable, reason, restrict);
+			enable, reason, restricted);
 
 	if (chg_limit_active_mask & reason) {
 		if (enable)
@@ -980,7 +977,7 @@ static void set_limit_charge_with_reason(bool enable, int reason, int restrict)
 						chg_limit_timer_sub_mask, chg_limit_current);
 #else
 				htc_batt_info.icharger->set_limit_charge_enable(!!chg_limit_reason,
-						chg_limit_reason, restrict);
+						chg_limit_reason, restricted);
 #endif
 			}
 		}
@@ -2262,7 +2259,6 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 		allow_drop_one_percent_flag = false;
 	}
 
-	
 	if (first)
 		schedule_delayed_work(&check_consistent_work,
 				msecs_to_jiffies(CHECK_CONSISTENT_DELAY_MS));
@@ -2279,17 +2275,14 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 static void batt_update_limited_charge(void)
 {
 	if (htc_batt_info.state & STATE_EARLY_SUSPEND) {
-		
 		if (htc_batt_info.rep.batt_temp > SMALL_CHG_TEMP_HEAVY) {
 			set_limit_charge_with_reason(true, HTC_BATT_CHG_LIMIT_BIT_THRML, RESTRICT_SOFT);
 		} else if (htc_batt_info.rep.batt_temp <= SMALL_CHG_TEMP_HEAVY) {
 			set_limit_charge_with_reason(false, HTC_BATT_CHG_LIMIT_BIT_THRML, RESTRICT_NONE);
 		} else {
-			
 		}
 	} else {
 #if !(defined(CONFIG_MACH_B2_WLJ))
-		
 		if (htc_batt_info.rep.batt_temp > SMALL_CHG_TEMP_HEAVY) {
 			set_limit_charge_with_reason(true, HTC_BATT_CHG_LIMIT_BIT_THRML, RESTRICT_HEAVY);
 		} else if ((htc_batt_info.rep.batt_temp > SMALL_CHG_TEMP_SOFT)
@@ -2299,7 +2292,6 @@ static void batt_update_limited_charge(void)
 			set_limit_charge_with_reason(false, HTC_BATT_CHG_LIMIT_BIT_THRML, RESTRICT_NONE);
 		}
 		else {
-			
 		}
 #else
 		set_limit_charge_with_reason(false, HTC_BATT_CHG_LIMIT_BIT_THRML, RESTRICT_HEAVY);
