@@ -242,8 +242,8 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 
 HOSTCC       = $(CCACHE) gcc
 HOSTCXX      = $(CCACHE) g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -finline-functions -ffast-math
-HOSTCXXFLAGS = -O2 -finline-functions -ffast-math
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -Ofast -fomit-frame-pointer -fno-tree-loop-distribute-patterns
+HOSTCXXFLAGS = -Ofast -fno-tree-loop-distribute-patterns
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -359,13 +359,12 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 ARM_ARCH_OPT := -mcpu=cortex-a57.cortex-a53 -mtune=cortex-a57.cortex-a53
 GEN_OPT_FLAGS := $(call cc-option,$(ARM_ARCH_OPT),-march=armv8-a) \
  -DNDEBUG \
- -O2 \
+ -Ofast \
  -fomit-frame-pointer \
  -fmodulo-sched \
  -fmodulo-sched-allow-regmoves \
  -fivopts \
- -finline-functions \
- -ffast-math
+ -fno-tree-loop-distribute-patterns
 
 # Use USERINCLUDE when you must reference the UAPI directories only.
 USERINCLUDE    := \
@@ -592,7 +591,7 @@ all: vmlinux
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
 else
-KBUILD_CFLAGS	+= -O2
+KBUILD_CFLAGS	+= -Ofast -fno-tree-loop-distribute-patterns
 endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
