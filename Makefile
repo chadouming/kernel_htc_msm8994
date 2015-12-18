@@ -242,8 +242,8 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 
 HOSTCC       = $(CCACHE) gcc
 HOSTCXX      = $(CCACHE) g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -Ofast -fomit-frame-pointer -fno-tree-loop-distribute-patterns
-HOSTCXXFLAGS = -Ofast -fno-tree-loop-distribute-patterns
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O3 -fomit-frame-pointer -fno-tree-loop-distribute-patterns
+HOSTCXXFLAGS = -O3 -fno-tree-loop-distribute-patterns
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -359,7 +359,7 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 ARM_ARCH_OPT := -mcpu=cortex-a57.cortex-a53 -mtune=cortex-a57.cortex-a53
 GEN_OPT_FLAGS := $(call cc-option,$(ARM_ARCH_OPT),-march=armv8-a) \
  -DNDEBUG \
- -Ofast \
+ -O3 \
  -fomit-frame-pointer \
  -fmodulo-sched \
  -fmodulo-sched-allow-regmoves \
@@ -591,7 +591,7 @@ all: vmlinux
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
 else
-KBUILD_CFLAGS	+= -Ofast -fno-tree-loop-distribute-patterns
+KBUILD_CFLAGS	+= -O3 -fno-tree-loop-distribute-patterns
 endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
