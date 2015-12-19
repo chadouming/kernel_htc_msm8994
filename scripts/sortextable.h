@@ -101,14 +101,14 @@ do_func(Elf_Ehdr *ehdr, char const *const fname, table_sort_t custom_sort)
 	Elf_Sym *sort_needed_sym;
 	Elf_Shdr *sort_needed_sec;
 	Elf_Rel *relocs = NULL;
-	int relocs_size;
-	uint32_t *sort_done_location;
+	int relocs_size = 0;
+	uint32_t *sort_done_location = 0;
 	const char *secstrtab;
 	const char *strtab;
 	char *extab_image;
 	int extab_index = 0;
-	int i;
-	int idx;
+	int i = 0;
+	int idx = 0;
 
 	shdr = (Elf_Shdr *)((char *)ehdr + _r(&ehdr->e_shoff));
 	shstrtab_sec = shdr + r2(&ehdr->e_shstrndx);
